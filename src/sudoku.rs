@@ -1,21 +1,35 @@
 
-use std::cmp;
-use std::fmt;
-
 use crate::sudoku_iterator::SudokuIterator;
 
 
-#[derive(Debug)]
-pub struct Sudoku<'a, const N_ROWS: usize, const N_COLS: usize>
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Sudoku<const N_ROWS: usize, const N_COLS: usize>
 {
-    board: [[&'a str; N_COLS]; N_ROWS],
+    pub board: [[u32; N_COLS]; N_ROWS],
 }
 
 
-impl<'a, const N_ROWS: usize, const N_COLS: usize> Sudoku<'a, N_ROWS, N_COLS> {
+impl<const N_ROWS: usize, const N_COLS: usize> Sudoku<N_ROWS, N_COLS> {
 
-    pub fn new(board: [[&'a str; N_COLS]; N_ROWS]) -> Self
+    const CHECK_CONSTRAINTS: () = {
+        // Constraint 1: Minimum Size
+        assert!(N_ROWS > 3, "N_ROWS must be greater than 3");
+        assert!(N_COLS > 3, "N_COLS must be greater than 3");
+
+        // Constraint 2: Integer Size
+        let block_h = N_ROWS / 3;
+        let block_w = N_COLS / 3;
+        let symbols_needed = block_h * block_w;
+
+        assert!(
+            symbols_needed <= u32::BITS as usize, 
+            "The chosen type u32 is too small for this grid size!"
+        );
+    };
+
+    pub fn new(board: [[u32; N_COLS]; N_ROWS]) -> Self
     {
+        let _ = Self::CHECK_CONSTRAINTS;
 
         Sudoku { board: board.clone() }
     }
@@ -28,7 +42,7 @@ impl<'a, const N_ROWS: usize, const N_COLS: usize> Sudoku<'a, N_ROWS, N_COLS> {
 
             for c in 0..N_COLS {
                 let cell_value = row[c];
-                if cell_value == "."
+                if cell_value == 0
                 {
                     continue;
                 }
@@ -38,7 +52,6 @@ impl<'a, const N_ROWS: usize, const N_COLS: usize> Sudoku<'a, N_ROWS, N_COLS> {
                     let check_value = self.board[c_r][c_c];
                     if check_value == cell_value
                     {
-                        println!("({r},{c}): {cell_value} == {check_value} :({c_r}, {c_c})");
                         return false;
                     }
                 }
@@ -47,69 +60,11 @@ impl<'a, const N_ROWS: usize, const N_COLS: usize> Sudoku<'a, N_ROWS, N_COLS> {
 
         true
     }
-}
 
+    pub fn max_number(&self) -> u32 {
 
-impl<'a, const N_ROWS: usize, const N_COLS: usize> fmt::Display for Sudoku<'a, N_ROWS, N_COLS> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        
-        // 1. APPLY YOUR LOGIC
-        // We calculate block size by strictly dividing by 3.
-        // We use .max(1) to prevent "divide by zero" errors if rows/cols < 3.
-        let block_h = (N_ROWS / 3).max(1);
-        let block_w = (N_COLS / 3).max(1);
-
-        // 2. Dynamic Padding
-        let max_dim = cmp::max(N_ROWS, N_COLS);
-        let max_val_width = max_dim.to_string().len();
-
-        // Helper to draw horizontal separators
-        let draw_separator = |f: &mut fmt::Formatter| -> fmt::Result {
-            write!(f, "+")?;
-            for i in 0..N_COLS {
-                // Draw dashes for content + 2 spaces padding
-                for _ in 0..(max_val_width + 2) { 
-                    write!(f, "-")?; 
-                }
-                
-                // Draw a "+" at block intersections based on block_w
-                if (i + 1) % block_w == 0 {
-                    write!(f, "+")?;
-                } else {
-                    write!(f, "-")?;
-                }
-            }
-            writeln!(f)
-        };
-
-        // --- PRINTING ---
-
-        draw_separator(f)?;
-
-        for (row_idx, row) in self.board.iter().enumerate() {
-            write!(f, "|")?;
-
-            for (col_idx, cell) in row.iter().enumerate() {
-                let val = if cell.is_empty() { "." } else { cell };
-
-                write!(f, " {:>width$} ", val, width = max_val_width)?;
-
-                // Vertical separator based on block_w
-                if (col_idx + 1) % block_w == 0 {
-                    write!(f, "|")?;
-                } else {
-                    write!(f, " ")?;
-                }
-            }
-            writeln!(f)?;
-
-            // Horizontal separator based on block_h
-            if (row_idx + 1) % block_h == 0 {
-                draw_separator(f)?;
-            }
-        }
-
-        Ok(())
+        (N_ROWS / 3 * N_COLS / 3) as u32
     }
+
 }
 
