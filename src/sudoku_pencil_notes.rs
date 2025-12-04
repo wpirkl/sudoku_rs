@@ -33,13 +33,13 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         PencilNotes { possibilities: [[number_of_symbols_mask; N_COLS]; N_ROWS] }
     }
 
-    pub fn add_possibility(&mut self, row: usize, col: usize, number: u8) {
+    pub fn add_possibility(&mut self, row: usize, col: usize, number: u32) {
 
         let mask = 1 << (number - 1);
         self.possibilities[row][col] |= mask;
     }
 
-    pub fn remove_possibility(&mut self, row: usize, col: usize, number: u8) {
+    pub fn remove_possibility(&mut self, row: usize, col: usize, number: u32) {
 
         let mask = 1 << (number - 1);
         self.possibilities[row][col] &= !mask;
@@ -56,7 +56,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         self.possibilities[row][col]
     }
 
-    pub fn has_possibility(&self, row: usize, col: usize, number: u8) -> bool {
+    pub fn has_possibility(&self, row: usize, col: usize, number: u32) -> bool {
         
         let mask = 1 << (number - 1);
         (self.possibilities[row][col] & mask) != 0

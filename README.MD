@@ -5,9 +5,12 @@ A Rust implementation of a Sudoku puzzle solver and generator.
 ## Features
 
 - Input validation
+- Sudoku iterator
+- Pencil notes stored in bitmask
 
 ## TODO
 
+- Backpropagate changes on pencil notes
 - Sudoku generation
 - Unit testing
 - Sudoku solving

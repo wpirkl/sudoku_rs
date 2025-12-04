@@ -1,17 +1,17 @@
-mod sudoku;
-mod sudoku_iterator;
-mod sudoku_fmt;
-mod sudoku_pencil_notes;
+pub mod sudoku;
+pub mod sudoku_iterator;
+pub mod sudoku_fmt;
+pub mod sudoku_pencil_notes;
+pub mod sudoku_factory;
 
+/* 
 use sudoku::Sudoku;
 use sudoku_pencil_notes::PencilNotes;
-
-
 fn main() {
 
     println!("Sudoku Iterator");
 
-    let board = 
+    let board: [[u32; 9]; 9] = 
         [[5,3,0,0,7,0,0,0,0]
         ,[6,0,0,1,9,5,0,0,0]
         ,[0,9,8,0,0,0,0,6,0]
@@ -36,3 +36,4 @@ fn main() {
     println!("Pencil Notes: {:?}", pencil_notes);
 
 }
+ */

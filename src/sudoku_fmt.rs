@@ -4,6 +4,7 @@ use std::fmt;
 use crate::sudoku::Sudoku;
 
 impl<const N_ROWS: usize, const N_COLS: usize> fmt::Display for Sudoku<N_ROWS, N_COLS> {
+
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         
         // 1. APPLY YOUR LOGIC
