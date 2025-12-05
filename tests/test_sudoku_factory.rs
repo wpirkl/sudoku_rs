@@ -1,5 +1,5 @@
 use sudoku::sudoku_factory::{select_random_bit, SudokuFactory}; // Import the function from the parent module
-
+use sudoku::sudoku_fmt::*;
 
 #[test]
 fn test_returns_none_for_empty_mask() {
@@ -8,26 +8,30 @@ fn test_returns_none_for_empty_mask() {
 }
 
 #[test]
-fn test_returns_exact_index_for_single_bit() {
+fn test_returns_exact_index_for_single_bit(){
     // Mask: 000...01000 (only index 3 is set)
-    let mask = 1 << 3;
     
     // Run it multiple times to ensure it's not accidentally working
-    for _ in 0..10 {
-        assert_eq!(select_random_bit(mask), Some(3));
+    for i in 0..10 as u32 {
+        let mask = 1 << i;
+        assert_eq!(select_random_bit(mask), Some(i));
     }
 }
 
 #[test]
 fn test_picks_valid_options_only() {
     // Mask: 101 (Indices 0 and 2 are set. Index 1 is NOT set)
-    let mask = (1 << 0) | (1 << 2) | (1 << 7);
 
     for _ in 0..50 {
+        let mask = rand::random::<u32>();
         let result = select_random_bit(mask).unwrap();
-        
-        // Assert the result is EITHER 0 OR 2
-        assert!(result == 0 || result == 2 || result == 7, "Function selected an invalid bit: {}", result);
+
+        assert!(result < 32, "Function returned out-of-bounds index: {}", result);
+
+        let result = (1 as u32) << result; // Convert to 0-based index
+
+        let valid = mask & result == result;
+        assert!(valid, "Function selected an invalid bit: {:08x} != {:08x}", result, mask);
     }
 }
 
@@ -62,6 +66,8 @@ fn test_sudoku_generation() {
 
     let factory = SudokuFactory::<N_ROWS, N_COLS>::new();
     let sudoku = factory.generate();
+
+    println!("Generated Sudoku:\n{}", sudoku);
 
     // Check that all cells are filled (non-zero)
     for r in 0..N_ROWS {

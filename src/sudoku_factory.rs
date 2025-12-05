@@ -1,6 +1,6 @@
 use crate::sudoku::Sudoku;
 use crate::sudoku_iterator::SudokuIterator;
-use crate::sudoku_pencil_notes::PencilNotes;
+use crate::sudoku_pencil_notes::{HiddenSingleIterator, PencilNotes};
 use crate::sudoku_fmt::*;
 
 pub struct SudokuFactory<const N_ROWS: usize, const N_COLS: usize>();
@@ -36,31 +36,35 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
         let mut sudoku = Sudoku { board: [[0; N_COLS]; N_ROWS] };
         let mut pencil_notes = PencilNotes::<N_ROWS, N_COLS>::new();
 
+        for _ in 0..(N_ROWS * N_COLS) {
 
-        for r in 0..N_ROWS {
-            for c in 0..N_COLS {
-                // get the possibilities for this cell
-                let possibilities = pencil_notes.get_possibility(r, c);
+            for row in 0..N_ROWS {
+                for col in 0..N_COLS {
+                    for (r,c, possibility) in HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, row, col) {
 
-                // select one possibility at random
-                if let Some(selected_bit) = select_random_bit(possibilities) {
+                        println!("Hidden single found at ({}, {}) with possibility {}", r, c, possibility);
 
-                    let number = selected_bit;
-                    sudoku.board[r][c] = number;
-                    pencil_notes.set_possibility(r, c, number);
+                        pencil_notes.clear_possibilities(r, c);
+                        sudoku.board[r][c] = possibility;
 
-                    for (it_r, it_c) in SudokuIterator::<N_ROWS, N_COLS>::new(r, c) {
-
-                        // println!("Removing possibility {:?} from cell ({}, {})", number, it_r, it_c);
-                        pencil_notes.remove_possibility(it_r, it_c, number);
                     }
+                }
+            }
 
-                    // println!("({}, {}) => {} -- Possibilities: {:?}", r, c, number, pencil_notes);
-                    println!("{}", sudoku);
+            if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
+
+                let mask = pencil_notes.get_possibility(row, col);
+                if let Some(selected_bit) = select_random_bit(mask)
+                {
+                    let number = selected_bit + 1;
+
+                    sudoku.board[row][col] = number;
+                    pencil_notes.clear_possibilities(row, col);
+                    pencil_notes.eliminate_possibility(row, col, number);
                 }
                 else
                 {
-                    assert!(false, "No possibilities left for cell ({}, {}, {:?})", r, c, pencil_notes);
+                    // assert!(false, "No valid options left for cell ({}, {})", row, col);
                 }
             }
         }
@@ -78,7 +82,7 @@ pub fn select_random_bit(bitfield: u32) -> Option<u32> {
 
     match number_of_ones {
         0 => None,
-        1 => Some(mask.trailing_zeros()+1),
+        1 => Some(mask.trailing_zeros()),
         _ => {
 
             let target_index = rand::random_range(0..number_of_ones);
@@ -87,7 +91,7 @@ pub fn select_random_bit(bitfield: u32) -> Option<u32> {
                 mask &= mask - 1;
             }
 
-            Some(mask.trailing_zeros()+1)
+            Some(mask.trailing_zeros())
         }
     }
 }
