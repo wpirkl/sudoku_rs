@@ -1,5 +1,5 @@
 
-use crate::sudoku_iterator::SudokuIterator;
+use crate::sudoku_iterator::{SudokuIterator, SudokuIteratorMode};
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,9 +34,22 @@ impl<const N_ROWS: usize, const N_COLS: usize> Sudoku<N_ROWS, N_COLS> {
         Sudoku { board: board.clone() }
     }
 
+    pub fn is_complete(&self) -> bool
+    {
+        for r in 0..N_ROWS {
+            for c in 0..N_COLS {
+                if self.board[r][c] == 0
+                {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+    
     pub fn is_valid(&self) -> bool
     {
-        
         for r in 0..N_ROWS {
             let row = self.board[r];
 
@@ -47,8 +60,13 @@ impl<const N_ROWS: usize, const N_COLS: usize> Sudoku<N_ROWS, N_COLS> {
                     continue;
                 }
 
-                for (c_r, c_c) in SudokuIterator::<9, 9>::new(r, c)
+                for (c_r, c_c) in SudokuIterator::<9, 9>::new(r, c, SudokuIteratorMode::Affected)
                 {
+                    if c_r == r && c_c == c
+                    {
+                        continue;
+                    }
+
                     let check_value = self.board[c_r][c_c];
                     if check_value == cell_value
                     {

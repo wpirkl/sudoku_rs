@@ -1,4 +1,4 @@
-use crate::sudoku_iterator::SudokuIterator;
+use crate::sudoku_iterator::{SudokuIterator, SudokuIteratorMode};
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,7 +60,11 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
 
     pub fn eliminate_possibility(&mut self, row: usize, col: usize, number: u32) {
 
-        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col) {
+        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Affected) {
+
+            if r == row && c == col {
+                continue;
+            }
 
             self.remove_possibility(r, c, number);
         }
@@ -122,8 +126,6 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
 }
 
 
-
-
 pub struct PossibilityIterator {
     mask: u32
 }
@@ -152,8 +154,6 @@ impl Iterator for PossibilityIterator {
 
 
 pub struct HiddenSingleIterator<const N_ROWS: usize, const N_COLS: usize> {
-    row: usize,
-    col: usize,
     counts: [u32; 9],
     positions: [(usize, usize); 9],
     current: usize
@@ -162,16 +162,14 @@ pub struct HiddenSingleIterator<const N_ROWS: usize, const N_COLS: usize> {
 
 impl<const N_ROWS: usize, const N_COLS: usize> HiddenSingleIterator<N_ROWS, N_COLS> {
 
-    pub fn new(pencil_notes: &PencilNotes<N_ROWS, N_COLS>, row: usize, col: usize) -> Self {
+    pub fn new(pencil_notes: &PencilNotes<N_ROWS, N_COLS>, row: usize, col: usize, mode: SudokuIteratorMode) -> Self {
 
         let mut iterator = HiddenSingleIterator {
-            row: row,
-            col: col,
             counts: [0; 9],
             positions: [(N_ROWS, N_COLS); 9],
             current: 0 };
 
-        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col) {
+        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, mode) {
          
             let cell_possibility = pencil_notes.get_possibility(r, c);
             for possibility in PossibilityIterator::new(cell_possibility) {
