@@ -1,5 +1,5 @@
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SudokuIteratorMode
 {
     Row,

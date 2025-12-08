@@ -105,6 +105,12 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
                 }
             }
 
+            for row in 0..N_ROWS/3 {
+                for col in 0..N_COLS/3 {
+                    pencil_notes.handle_naked_pairs(row*3, col*3, SudokuIteratorMode::Square);
+                }
+            }
+
             if !found_hidden_singles {
 
                 if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {

@@ -177,6 +177,47 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         best_pos
     }
 
+
+    pub fn handle_naked_pairs(&mut self, row: usize, col: usize, mode: SudokuIteratorMode) {
+
+        let max_number:usize = N_ROWS/3 * N_COLS/3;
+        let mut places: [u32; 32] = [0 as u32; 32];
+
+        for (index, (r, c)) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, mode).enumerate() {
+
+            let cellmask = self.get_possibilities(r, c);
+
+            for possibility in PossibilityIterator::new(cellmask) {
+
+                places[possibility as usize] |= 1 << index;
+            }
+        }
+
+        // println!("Hidden Pair Check - Places: {:?}", places);
+
+        for num_a in 1..max_number
+        {
+            let places_a = places[num_a];
+            // if places_a.count_ones() != 2 { continue; }
+
+            for num_b in (num_a + 1)..max_number
+            {
+                let places_b = places[num_b];
+                // if places_a.count_ones() != 2 { continue; }
+
+                let common_places = places_a & places_b;
+
+                // if places_a == places_b {
+                if common_places.count_ones() == 2 {
+
+                    // let keep_mask: u32 = (1 << (num_a - 1)) | (1 << (num_b - 1));
+                    
+                    println!("Found hidden pair: numbers {} and {} in positions {:09b}", num_a, num_b, places_a >> 1);
+                }
+            }
+        }
+    }
+
 }
 
 
@@ -208,8 +249,8 @@ impl Iterator for PossibilityIterator {
 
 
 pub struct HiddenSingleIterator<const N_ROWS: usize, const N_COLS: usize> {
-    counts: [u32; 9],
-    positions: [(usize, usize); 9],
+    counts: [u32; 32],
+    positions: [(usize, usize); 32],
     current: usize
 }
 
@@ -219,8 +260,8 @@ impl<const N_ROWS: usize, const N_COLS: usize> HiddenSingleIterator<N_ROWS, N_CO
     pub fn new(pencil_notes: &PencilNotes<N_ROWS, N_COLS>, row: usize, col: usize, mode: SudokuIteratorMode) -> Self {
 
         let mut iterator = HiddenSingleIterator {
-            counts: [0; 9],
-            positions: [(N_ROWS, N_COLS); 9],
+            counts: [0; 32],
+            positions: [(N_ROWS, N_COLS); 32],
             current: 0 };
 
         for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, mode) {
@@ -244,7 +285,9 @@ impl<const N_ROWS: usize, const N_COLS: usize> Iterator for HiddenSingleIterator
 
     fn next(&mut self) -> Option<Self::Item> {
 
-        for number in self.current..9 {
+        let max_number:usize = N_ROWS/3 * N_COLS/3;
+
+        for number in self.current..max_number {
             if self.counts[number] == 1 {
 
                 let (r, c) = self.positions[number];
