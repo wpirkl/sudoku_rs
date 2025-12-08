@@ -60,7 +60,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> Sudoku<N_ROWS, N_COLS> {
                     continue;
                 }
 
-                for (c_r, c_c) in SudokuIterator::<9, 9>::new(r, c, SudokuIteratorMode::Affected)
+                for (c_r, c_c) in SudokuIterator::<N_ROWS, N_COLS>::new(r, c, SudokuIteratorMode::Affected)
                 {
                     if c_r == r && c_c == c
                     {

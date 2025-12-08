@@ -58,9 +58,9 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         self.possibilities[row][col] = 0;
     }
 
-    pub fn eliminate_possibility(&mut self, row: usize, col: usize, number: u32) {
+    pub fn eliminate_possibility_row(&mut self, row: usize, col: usize, number: u32) {
 
-        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Affected) {
+        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Row) {
 
             if r == row && c == col {
                 continue;
@@ -68,6 +68,49 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
 
             self.remove_possibility(r, c, number);
         }
+    }
+
+    pub fn eliminate_possibility_col(&mut self, row: usize, col: usize, number: u32) {
+
+        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Column) {
+
+            if r == row && c == col {
+                continue;
+            }
+
+            self.remove_possibility(r, c, number);
+        }
+    }
+
+    pub fn eliminate_possibility_square(&mut self, row: usize, col: usize, number: u32) {
+
+        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Square) {
+
+            if r == row && c == col {
+                continue;
+            }
+
+            self.remove_possibility(r, c, number);
+        }
+    }
+
+    pub fn eliminate_possibility_affected(&mut self, row: usize, col: usize, number: u32) {
+
+        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Square) {
+
+            if r == row && c == col {
+                continue;
+            }
+
+            self.remove_possibility(r, c, number);
+        }
+    }
+
+    pub fn eliminate_possibility(&mut self, row: usize, col: usize, number: u32) {
+
+        self.eliminate_possibility_row(row, col, number);
+        self.eliminate_possibility_col(row, col, number);   
+        self.eliminate_possibility_square(row, col, number);
     }
 
     pub fn get_possibility(&self, row: usize, col: usize) -> u32 {
@@ -113,9 +156,9 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
                         }
                     }
                 }
-                else
-                {
-                    // assert!(count != 0, "Contradiction found at cell ({}, {})", r, c);
+                else if count == 0 {
+                    // Contradiction found
+                    // return None;
                 }
             }
         }

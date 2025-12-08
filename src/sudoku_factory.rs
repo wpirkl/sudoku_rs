@@ -41,75 +41,84 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
         let mut sudoku = Sudoku { board: [[0; N_COLS]; N_ROWS] };
         let mut pencil_notes = PencilNotes::<N_ROWS, N_COLS>::new();
 
-        for _ in 0..(N_ROWS * N_COLS) {
+        for iterations in 0..(N_ROWS * N_COLS) {
+
+            let mut found_hidden_singles = false;
 
             for row in 0..N_ROWS/3 {
                 for col in 0..N_COLS/3 {
-                    for (r,c, possibility) in HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, row*3, col*3, SudokuIteratorMode::Square) {
+                    if let Some((r,c, possibility)) = HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, row*3, col*3, SudokuIteratorMode::Square).next() {
 
-                        println!("Hidden single square found at ({}, {}) with possibility {}", r, c, possibility);
+                        // println!("Hidden single square found at ({}, {}) with possibility {}", r, c, possibility);
 
                         pencil_notes.clear_possibilities(r, c);
                         sudoku.board[r][c] = possibility;
                         pencil_notes.eliminate_possibility(r, c, possibility);
 
                         thread::sleep(SLEEP_DURATION_SECS);
+                        found_hidden_singles = true;
                     }
                 }
             }
 
             for row in 0..N_ROWS {
-                for (r,c, possibility) in HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, row, 0, SudokuIteratorMode::Column) {
+                if let Some((r,c, possibility)) = HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, row, 0, SudokuIteratorMode::Column).next() {
 
-                    println!("Hidden single column found at ({}, {}) with possibility {}", r, c, possibility);
+                    // println!("Hidden single column found at ({}, {}) with possibility {}", r, c, possibility);
 
                     pencil_notes.clear_possibilities(r, c);
                     sudoku.board[r][c] = possibility;
                     pencil_notes.eliminate_possibility(r, c, possibility);
 
                     thread::sleep(SLEEP_DURATION_SECS);
+                    found_hidden_singles = true;
                 }
             }
 
             for col in 0..N_COLS {
-                for (r,c, possibility) in HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, 0, col, SudokuIteratorMode::Row) {
+                if let Some((r,c, possibility)) = HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, 0, col, SudokuIteratorMode::Row).next() {
 
-                    println!("Hidden single row found at ({}, {}) with possibility {}", r, c, possibility);
+                    // println!("Hidden single row found at ({}, {}) with possibility {}", r, c, possibility);
 
                     pencil_notes.clear_possibilities(r, c);
                     sudoku.board[r][c] = possibility;
                     pencil_notes.eliminate_possibility(r, c, possibility);
 
                     thread::sleep(SLEEP_DURATION_SECS);
+                    found_hidden_singles = true;
                 }
             }
 
-            if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
+            if !found_hidden_singles {
 
-                let mask = pencil_notes.get_possibility(row, col);
-                if let Some(selected_bit) = select_random_bit(mask)
-                {
-                    let number = selected_bit + 1;
+                if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
 
-                    println!("Filling cell ({}, {}) with number {}", row, col, number);
+                    let mask = pencil_notes.get_possibility(row, col);
+                    if let Some(selected_bit) = select_random_bit(mask)
+                    {
+                        let number = selected_bit + 1;
 
-                    sudoku.board[row][col] = number;
-                    pencil_notes.clear_possibilities(row, col);
-                    pencil_notes.eliminate_possibility(row, col, number);
+                        // println!("Filling cell ({}, {}) with number {}", row, col, number);
 
-                    thread::sleep(SLEEP_DURATION_SECS);
-                }
-                else
-                {
-                    // assert!(false, "No valid options left for cell ({}, {})", row, col);
+                        sudoku.board[row][col] = number;
+                        pencil_notes.clear_possibilities(row, col);
+                        pencil_notes.eliminate_possibility(row, col, number);
+
+                        thread::sleep(SLEEP_DURATION_SECS);
+                    }
+                    else
+                    {
+                        // assert!(false, "No valid options left for cell ({}, {})", row, col);
+                    }
                 }
             }
 
-            println!("Current Sudoku State:\n{}", sudoku);
+            // println!("Current Sudoku State:\n{}", sudoku);
 
             assert!(sudoku.is_valid(), "Sudoku state is invalid!");
 
             if sudoku.is_complete() {
+                println!("Sudoku generation complete after {} iterations!", iterations + 1);
                 break;
             }
 
