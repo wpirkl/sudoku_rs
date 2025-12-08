@@ -1,12 +1,12 @@
 use crate::sudoku::Sudoku;
-use crate::sudoku_iterator::{SudokuIterator, SudokuIteratorMode};
+use crate::sudoku_iterator::SudokuIteratorMode;
 use crate::sudoku_pencil_notes::{HiddenSingleIterator, PencilNotes};
 use crate::sudoku_fmt::*;
 
 use std::thread;
 use std::time::Duration;
 
-const SLEEP_DURATION_SECS: Duration = Duration::from_millis(1);
+const SLEEP_DURATION_SECS: Duration = Duration::from_millis(0);
 
 pub struct SudokuFactory<const N_ROWS: usize, const N_COLS: usize>();
 
@@ -42,6 +42,22 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
         let mut pencil_notes = PencilNotes::<N_ROWS, N_COLS>::new();
 
         for iterations in 0..(N_ROWS * N_COLS) {
+
+            for row in 0..N_ROWS {
+                for col in 0..N_COLS {
+                    
+                    if let Some(number) = pencil_notes.get_possibility(row, col) {
+                        
+                        // println!("Naked single found at ({}, {}) with possibility {}", row, col, number);
+                        
+                        pencil_notes.clear_possibilities(row, col);
+                        sudoku.board[row][col] = number;
+                        pencil_notes.eliminate_possibility(row, col, number);
+
+                        thread::sleep(SLEEP_DURATION_SECS);
+                    }
+                }
+            }
 
             let mut found_hidden_singles = false;
 
@@ -93,7 +109,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
 
                 if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
 
-                    let mask = pencil_notes.get_possibility(row, col);
+                    let mask = pencil_notes.get_possibilities(row, col);
                     if let Some(selected_bit) = select_random_bit(mask)
                     {
                         let number = selected_bit + 1;

@@ -113,9 +113,20 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         self.eliminate_possibility_square(row, col, number);
     }
 
-    pub fn get_possibility(&self, row: usize, col: usize) -> u32 {
+    pub fn get_possibilities(&self, row: usize, col: usize) -> u32 {
 
         self.possibilities[row][col]
+    }
+
+    pub fn get_possibility(&self, row: usize, col: usize) -> Option<u32> {
+
+        if 1 == self.count_possibilities(row, col) {
+            let trailing = self.possibilities[row][col].trailing_zeros();
+
+            Some(trailing + 1)
+        } else {
+            None
+        }
     }
 
     pub fn has_possibility(&self, row: usize, col: usize, number: u32) -> bool {
@@ -214,7 +225,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> HiddenSingleIterator<N_ROWS, N_CO
 
         for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, mode) {
          
-            let cell_possibility = pencil_notes.get_possibility(r, c);
+            let cell_possibility = pencil_notes.get_possibilities(r, c);
             for possibility in PossibilityIterator::new(cell_possibility) {
         
                 iterator.counts[possibility as usize - 1] += 1;
