@@ -104,13 +104,18 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
                     found_hidden_singles = true;
                 }
             }
-
+/* 
             for row in 0..N_ROWS/3 {
                 for col in 0..N_COLS/3 {
                     pencil_notes.handle_naked_pairs(row*3, col*3, SudokuIteratorMode::Square);
                 }
             }
 
+            for cnt in 0..N_ROWS {
+                pencil_notes.handle_naked_pairs(cnt, 0, SudokuIteratorMode::Row);
+                pencil_notes.handle_naked_pairs(0, cnt, SudokuIteratorMode::Column);
+            }
+ */
             if !found_hidden_singles {
 
                 if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
