@@ -34,6 +34,15 @@ impl<const N_ROWS: usize, const N_COLS: usize> Sudoku<N_ROWS, N_COLS> {
         Sudoku { board: board.clone() }
     }
 
+    pub fn reset(&mut self)
+    {
+        for r in 0..N_ROWS {
+            for c in 0..N_COLS {
+                self.board[r][c] = 0;
+            }
+        }
+    }
+
     pub fn is_complete(&self) -> bool
     {
         for r in 0..N_ROWS {

@@ -1,6 +1,8 @@
 use crate::sudoku::Sudoku;
 use crate::sudoku_iterator::SudokuIteratorMode;
 use crate::sudoku_pencil_notes::{HiddenSingleIterator, PencilNotes};
+use rand::{Rng, RngCore};
+
 use crate::sudoku_fmt::*;
 
 use std::thread;
@@ -8,7 +10,10 @@ use std::time::Duration;
 
 const SLEEP_DURATION_SECS: Duration = Duration::from_millis(0);
 
-pub struct SudokuFactory<const N_ROWS: usize, const N_COLS: usize>();
+pub struct SudokuFactory<const N_ROWS: usize, const N_COLS: usize>
+{
+    pub rng: Box<dyn RngCore>
+}
 
 impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
 
@@ -28,14 +33,14 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
         );
     };
 
-    pub fn new() -> Self
+    pub fn new(rng: Box<dyn RngCore>) -> Self
     {
         let _ = Self::CHECK_CONSTRAINTS;
 
-        SudokuFactory {}
+        SudokuFactory { rng: rng }
     }
 
-    pub fn generate(&self) -> Sudoku<N_ROWS, N_COLS>
+    pub fn generate(&mut self) -> Sudoku<N_ROWS, N_COLS>
     {
         // Placeholder implementation
         let mut sudoku = Sudoku { board: [[0; N_COLS]; N_ROWS] };
@@ -123,7 +128,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
             if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
 
                 let mask = pencil_notes.get_possibilities(row, col);
-                if let Some(selected_bit) = select_random_bit(mask)
+                if let Some(selected_bit) = self.select_random_bit(mask)
                 {
                     let number = selected_bit + 1;
 
@@ -155,26 +160,27 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
         sudoku
     }
 
-}
-
-
-pub fn select_random_bit(bitfield: u32) -> Option<u32> {
-
-    let number_of_ones = bitfield.count_ones();
-    let mut mask = bitfield; 
-
-    match number_of_ones {
-        0 => None,
-        1 => Some(mask.trailing_zeros()),
-        _ => {
-
-            let target_index = rand::random_range(0..number_of_ones);
-
-            for _ in 0..target_index {
-                mask &= mask - 1;
+    pub fn select_random_bit(&mut self,bitfield: u32) -> Option<u32> {
+    
+        let number_of_ones = bitfield.count_ones();
+        let mut mask = bitfield; 
+    
+        match number_of_ones {
+            0 => None,
+            1 => Some(mask.trailing_zeros()),
+            _ => {
+    
+                let target_index = self.rng.random_range(0..number_of_ones);
+    
+                for _ in 0..target_index {
+                    mask &= mask - 1;
+                }
+    
+                Some(mask.trailing_zeros())
             }
-
-            Some(mask.trailing_zeros())
         }
     }
+
 }
+
+
