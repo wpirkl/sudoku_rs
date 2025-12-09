@@ -64,18 +64,20 @@ fn test_sudoku_generation() {
     const N_ROWS: usize = 9;
     const N_COLS: usize = 9;
 
-    let factory = SudokuFactory::<N_ROWS, N_COLS>::new();
-    let sudoku = factory.generate();
+    for n in 0..100 {
+        let factory = SudokuFactory::<N_ROWS, N_COLS>::new();
+        let sudoku = factory.generate();
 
-    println!("Generated Sudoku:\n{}", sudoku);
+        println!("Generated Sudoku: {} \n{}", n, sudoku);
 
-    // Check that all cells are filled (non-zero)
-    for r in 0..N_ROWS {
-        for c in 0..N_COLS {
-            assert!(sudoku.board[r][c] != 0, "Cell ({}, {}) is empty!", r, c);
+        // Check that all cells are filled (non-zero)
+        for r in 0..N_ROWS {
+            for c in 0..N_COLS {
+                assert!(sudoku.board[r][c] != 0, "Cell ({}, {}) is empty!", r, c);
+            }
         }
-    }
 
-    // Check that the Sudoku is valid
-    assert!(sudoku.is_valid(), "Generated Sudoku is not valid!");
+        // Check that the Sudoku is valid
+        assert!(sudoku.is_valid(), "Generated Sudoku is not valid!");
+    }
 }

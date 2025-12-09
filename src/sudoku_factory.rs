@@ -48,7 +48,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
                     
                     if let Some(number) = pencil_notes.get_possibility(row, col) {
                         
-                        // println!("Naked single found at ({}, {}) with possibility {}", row, col, number);
+                        // println!("{}: Naked single found at ({}, {}) with possibility {}", iterations+1, row, col, number);
                         
                         pencil_notes.clear_possibilities(row, col);
                         sudoku.board[row][col] = number;
@@ -59,13 +59,18 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
                 }
             }
 
+            for cnt in 0..N_ROWS {
+                pencil_notes.handle_naked_pairs(cnt, 0, SudokuIteratorMode::Row);
+                pencil_notes.handle_naked_pairs(0, cnt, SudokuIteratorMode::Column);
+            }
+
             let mut found_hidden_singles = false;
 
             for row in 0..N_ROWS/3 {
                 for col in 0..N_COLS/3 {
                     if let Some((r,c, possibility)) = HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, row*3, col*3, SudokuIteratorMode::Square).next() {
 
-                        // println!("Hidden single square found at ({}, {}) with possibility {}", r, c, possibility);
+                        // println!("{}: Hidden single square found at ({}, {}) with possibility {}", iterations+1, r, c, possibility);
 
                         pencil_notes.clear_possibilities(r, c);
                         sudoku.board[r][c] = possibility;
@@ -80,7 +85,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
             for row in 0..N_ROWS {
                 if let Some((r,c, possibility)) = HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, row, 0, SudokuIteratorMode::Column).next() {
 
-                    // println!("Hidden single column found at ({}, {}) with possibility {}", r, c, possibility);
+                    // println!("{}: Hidden single column found at ({}, {}) with possibility {}", iterations+1, r, c, possibility);
 
                     pencil_notes.clear_possibilities(r, c);
                     sudoku.board[r][c] = possibility;
@@ -94,7 +99,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
             for col in 0..N_COLS {
                 if let Some((r,c, possibility)) = HiddenSingleIterator::<N_ROWS, N_COLS>::new(&pencil_notes, 0, col, SudokuIteratorMode::Row).next() {
 
-                    // println!("Hidden single row found at ({}, {}) with possibility {}", r, c, possibility);
+                    // println!("{}: Hidden single row found at ({}, {}) with possibility {}", iterations+1, r, c, possibility);
 
                     pencil_notes.clear_possibilities(r, c);
                     sudoku.board[r][c] = possibility;
@@ -104,48 +109,44 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
                     found_hidden_singles = true;
                 }
             }
-/* 
+
             for row in 0..N_ROWS/3 {
                 for col in 0..N_COLS/3 {
                     pencil_notes.handle_naked_pairs(row*3, col*3, SudokuIteratorMode::Square);
                 }
             }
 
-            for cnt in 0..N_ROWS {
-                pencil_notes.handle_naked_pairs(cnt, 0, SudokuIteratorMode::Row);
-                pencil_notes.handle_naked_pairs(0, cnt, SudokuIteratorMode::Column);
+            if found_hidden_singles {
+                continue;
             }
- */
-            if !found_hidden_singles {
 
-                if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
+            if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
 
-                    let mask = pencil_notes.get_possibilities(row, col);
-                    if let Some(selected_bit) = select_random_bit(mask)
-                    {
-                        let number = selected_bit + 1;
+                let mask = pencil_notes.get_possibilities(row, col);
+                if let Some(selected_bit) = select_random_bit(mask)
+                {
+                    let number = selected_bit + 1;
 
-                        // println!("Filling cell ({}, {}) with number {}", row, col, number);
+                    // println!("{}: Filling cell ({}, {}) with random number {}", iterations+1, row, col, number);
 
-                        sudoku.board[row][col] = number;
-                        pencil_notes.clear_possibilities(row, col);
-                        pencil_notes.eliminate_possibility(row, col, number);
+                    sudoku.board[row][col] = number;
+                    pencil_notes.clear_possibilities(row, col);
+                    pencil_notes.eliminate_possibility(row, col, number);
 
-                        thread::sleep(SLEEP_DURATION_SECS);
-                    }
-                    else
-                    {
-                        // assert!(false, "No valid options left for cell ({}, {})", row, col);
-                    }
+                    thread::sleep(SLEEP_DURATION_SECS);
+                }
+                else
+                {
+                    // assert!(false, "No valid options left for cell ({}, {})", row, col);
                 }
             }
 
-            // println!("Current Sudoku State:\n{}", sudoku);
+            // // println!("Current Sudoku State:\n{}", sudoku);
 
             assert!(sudoku.is_valid(), "Sudoku state is invalid!");
 
             if sudoku.is_complete() {
-                println!("Sudoku generation complete after {} iterations!", iterations + 1);
+                // println!("Sudoku generation complete after {} iterations!", iterations + 1);
                 break;
             }
 

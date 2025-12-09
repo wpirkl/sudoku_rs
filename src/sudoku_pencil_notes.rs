@@ -216,19 +216,26 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
                     // Found a naked pair
                     let pair_mask = self.possibilities[row_idx_a][col_idx_a];
 
-                    println!("Found naked pair at ({}, {}) and ({}, {}) with mask {:09b}", row_idx_a, col_idx_a, row_idx_b, col_idx_b, pair_mask);
+                    // println!("Found naked pair at ({}, {}) and ({}, {}) with mask {:09b}", row_idx_a, col_idx_a, row_idx_b, col_idx_b, pair_mask);
 
                     // eliminate these two possibilities from other affected cells in the unit
-                    for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Affected) {
+                    for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, mode) {
 
                         if (r == row_idx_a && c == col_idx_a) || (r == row_idx_b && c == col_idx_b) {
                             continue;
                         }
 
                         let before = self.possibilities[r][c];
-                        let after = before & (!pair_mask);
-                        println!("Eliminating naked pair possibilities at ({}, {}): {:09b} & {:09b} -> {:09b}", r, c, before, pair_mask, after);
-                        self.possibilities[r][c] = after;
+                        if before & pair_mask != 0 {
+
+                            let after = before & (!pair_mask);
+
+                            // println!("Eliminating naked pair possibilities at ({}, {}): {:09b} & {:09b} -> {:09b}", r, c, before, pair_mask, after);
+
+                            self.possibilities[r][c] = after;
+
+                            // println!("Eliminating naked pair possibilities at ({}, {}): {:09b} & {:09b} -> {:09b}", r, c, before, pair_mask, after);
+                        }
                     }
                 }
             }
