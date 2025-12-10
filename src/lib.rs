@@ -2,6 +2,7 @@ pub mod sudoku;
 pub mod sudoku_iterator;
 pub mod sudoku_fmt;
 pub mod sudoku_pencil_notes;
+pub mod sudoku_pencil_notes_fmt;
 pub mod sudoku_factory;
 
 /* 

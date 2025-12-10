@@ -67,8 +67,9 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         self.possibilities[row][col] &= !mask;
     }
 
-    pub fn set_possibility(&mut self, row: usize, col: usize, mask: u32) {
+    pub fn set_possibility(&mut self, row: usize, col: usize, number: u32) {
 
+        let mask = 1 << (number - 1);
         self.possibilities[row][col] = mask;
     }
 
@@ -113,9 +114,9 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         }
     }
 
-    pub fn eliminate_possibility_affected(&mut self, row: usize, col: usize, number: u32) {
+    pub fn eliminate_possibility(&mut self, row: usize, col: usize, number: u32) {
 
-        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Square) {
+        for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Affected) {
 
             if r == row && c == col {
                 continue;
@@ -125,7 +126,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         }
     }
 
-    pub fn eliminate_possibility(&mut self, row: usize, col: usize, number: u32) {
+    pub fn eliminate_possibility_affected(&mut self, row: usize, col: usize, number: u32) {
 
         self.eliminate_possibility_row(row, col, number);
         self.eliminate_possibility_col(row, col, number);   
@@ -184,6 +185,44 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
                         if min_count == 2 {
                             return best_pos;
                         }
+                    }
+                }
+                else if count == 0 {
+                    // Contradiction found
+                    // return None;
+                }
+            }
+        }
+
+        best_pos
+    }
+
+    pub fn find_highest_entropy_cell(&self) -> Option<(usize, usize)> {
+
+        let mut max_count = 0u32;
+        let mut best_pos = None;
+        let max_number:usize = N_ROWS/3 * N_COLS/3;
+
+        for r in 0..N_ROWS {
+            for c in 0..N_COLS {
+
+                // We need to cast Store to u32 to use count_ones logic generically
+                // Assuming you added a helper or Into<u32> to your trait
+
+                let count = self.count_possibilities(r,c);
+
+                // 0 means contradiction (impossible), 1 means solved.
+                // We only care about cells with > 1 possibilities.
+                if count > 1 {
+                    if count > max_count {
+                        max_count = count;
+                        best_pos = Some((r, c));
+                        /* 
+                        // Optimization: If we find a cell with all possibilities,
+                        if max_count == max_number as u32 {
+                            return best_pos;
+                        }
+                         */
                     }
                 }
                 else if count == 0 {
@@ -260,14 +299,14 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
 
             for possibility in PossibilityIterator::new(cellmask) {
 
-                // println!("Naked Pair Check - Cell ({}, {}) has possibility {}", r, c, possibility);
+                // println!("Hidden Pair Check - Cell ({}, {}) has possibility {}", r, c, possibility);
 
                 places[possibility as usize - 1] |= 1 << index;
             }
         }
 
-        println!("Naked Pair Check - Places: {:09b}, {:09b}", places[0], places[1]);
-        println!("Naked Pair Check - Coordinates: {:?}", coordinates);
+        // println!("Hidden Pair Check - Places: {:09b}, {:09b}", places[0], places[1]);
+        // println!("Hidden Pair Check - Coordinates: {:?}", coordinates);
 
         for num_a in 0..max_number
         {
@@ -281,45 +320,24 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
                 let places_b = places[num_b];
                 if places_a.count_ones() != 2 { continue; }   // if it's not 2 places, skip
 
-                // if common_places.count_ones() == 2 {
-                    // let common_places = places_a & places_b;
-                // }
+                if places_a == places_b { // if both masks share the same places, we found a hidden pair
 
-                if places_a == places_b { // if both masks share the same places, we found a naked pair
-
-                    // println!("Found naked pair: numbers {} and {} in positions {:09b}", num_a, num_b, places_a);
-
-                    // get the place index from places_a, which is the same as places_b
-                    let mut indices = [(0 as usize, 0 as usize); 2];
-
-                    for (i, coord_index) in PossibilityIterator::new(places_a).enumerate() {
-                        indices[i as usize] = coordinates[coord_index as usize - 1];
-                    }
-
-                    // println!("Naked pair positions: {:?}", indices);
+                    // println!("Found hidden pair: numbers {} and {} in positions {:09b}", num_a, num_b, places_a);
 
                     // create a mask to keep only the two numbers in the pair
                     let keep_mask: u32 = (1 << (num_a)) | (1 << (num_b));
+                    // println!("Hidden pair keep mask: {:09b}", keep_mask);
+                    
+                    // get the place index from places_a, which is the same as places_b
+                    for coord_index in PossibilityIterator::new(places_a) {
+                        let (row, col) = coordinates[coord_index as usize - 1];
 
-                    println!("Naked pair keep mask: {:09b}", keep_mask);
-
-                    for (r, c) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Affected) {
-
-                        let mut handle = true;
-                        for (index_r, index_c) in indices {
-                            // println!("Skipping elimination for naked pair cell ({}, {})", index_r, index_c);
-                            if r == index_r && c == index_c {
-                                handle = false;
-                                break;
-                            }
-                        }
-
-                        if handle {
-                            let before = self.possibilities[r][c];
-                            let after = (before) & (!keep_mask);
-
-                            println!("Eliminating possibilities ({}, {}) at ({}, {}): {:09b} & {:09b} -> {:09b}", num_a, num_b, r, c, before, keep_mask, after);
-                            self.possibilities[r][c] = after;
+                        // eliminate all other possibilities from these two cells
+                        let before = self.possibilities[row][col];
+                        if before & !keep_mask != 0 {
+                            let after = before & keep_mask;
+                            self.possibilities[row][col] = after;
+                            println!("Eliminating hidden pair possibilities at ({}, {}): {:09b} & {:09b} -> {:09b}", row, col, before, keep_mask, after);
                         }
                     }
                 }
