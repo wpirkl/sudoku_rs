@@ -22,6 +22,8 @@ Actually this is a bad example as the generation returns invalid cells (6, 6) an
 +-----------+-----------+-----------+
 ```
 
+![Alt Screen Capture of the sudoku gui](sudoku_gui.png)
+
 ## Features
 
 - Input validation
