@@ -1,7 +1,8 @@
+use rand::RngCore;
+
 use crate::sudoku::Sudoku;
 use crate::sudoku_iterator::SudokuIteratorMode;
-use crate::sudoku_pencil_notes::{HiddenSingleIterator, PencilNotes};
-use rand::{Rng, RngCore};
+use crate::sudoku_pencil_notes::{HiddenSingleIterator, PencilNotes, RandomBit};
 
 use crate::sudoku_fmt::*;
 use crate::sudoku_pencil_notes_fmt::*;
@@ -14,7 +15,7 @@ const SLEEP_DURATION_SECS: Duration = Duration::from_secs(1);
 
 pub struct SudokuFactory<const N_ROWS: usize, const N_COLS: usize>
 {
-    pub rng: Box<dyn RngCore>
+    pub random_bit: RandomBit
 }
 
 impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
@@ -37,9 +38,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
 
     pub fn new(rng: Box<dyn RngCore>) -> Self
     {
-        let _ = Self::CHECK_CONSTRAINTS;
-
-        SudokuFactory { rng: rng }
+        Self { random_bit: RandomBit::new(rng) }
     }
 
     pub fn generate(&mut self) -> Sudoku<N_ROWS, N_COLS>
@@ -49,6 +48,8 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
         let mut pencil_notes = PencilNotes::<N_ROWS, N_COLS>::new();
 
         for iterations in 0..(N_ROWS * N_COLS) {
+            
+            let mut found_hidden_singles = false;
 
             for row in 0..N_ROWS {
                 for col in 0..N_COLS {
@@ -65,25 +66,25 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
                         pencil_notes.eliminate_possibility(row, col, number);
 
                         // thread::sleep(SLEEP_DURATION_SECS);
+                        found_hidden_singles = true;
                     }
                 }
             }
 
             // handle naked and hidden pairs
             for cnt in 0..N_ROWS {
-                // pencil_notes.handle_naked_pairs(cnt, 0, SudokuIteratorMode::Row);
-                // pencil_notes.handle_naked_pairs(0, cnt, SudokuIteratorMode::Column);
-                // pencil_notes.handle_hidden_pairs(cnt, 0, SudokuIteratorMode::Row);
-                // pencil_notes.handle_hidden_pairs(0, cnt, SudokuIteratorMode::Column);
+                pencil_notes.handle_naked_pairs(cnt, 0, SudokuIteratorMode::Row);
+                pencil_notes.handle_naked_pairs(0, cnt, SudokuIteratorMode::Column);
+                pencil_notes.handle_hidden_pairs(cnt, 0, SudokuIteratorMode::Row);
+                pencil_notes.handle_hidden_pairs(0, cnt, SudokuIteratorMode::Column);
             }
 
             for row in 0..N_ROWS/3 {
                 for col in 0..N_COLS/3 {
-                    // pencil_notes.handle_naked_pairs(row*3, col*3, SudokuIteratorMode::Square);
-                    // pencil_notes.handle_hidden_pairs(row*3, col*3, SudokuIteratorMode::Square);
+                    pencil_notes.handle_naked_pairs(row*3, col*3, SudokuIteratorMode::Square);
+                    pencil_notes.handle_hidden_pairs(row*3, col*3, SudokuIteratorMode::Square);
                 }
             }
-            let mut found_hidden_singles = false;
 
             for row in 0..N_ROWS/3 {
                 for col in 0..N_COLS/3 {
@@ -97,7 +98,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
 
                             // thread::sleep(SLEEP_DURATION_SECS);
                             found_hidden_singles = true;
-                            break;
+                            // break;
                         }
                     }
                 }
@@ -115,7 +116,7 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
                         // thread::sleep(SLEEP_DURATION_SECS);
                         found_hidden_singles = true;
 
-                        break;
+                        // break;
                     }
                 }
             }
@@ -139,12 +140,12 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
 
             if !found_hidden_singles {
 
-                if let Some((row, col)) = pencil_notes.find_highest_entropy_cell() {
+                if let Some((row, col)) = pencil_notes.find_lowest_entropy_cell() {
 
                     if sudoku.board[row][col] == 0 {
 
                         let mask = pencil_notes.get_possibilities(row, col);
-                        if let Some(selected_bit) = self.select_random_bit(mask)
+                        if let Some(selected_bit) = self.random_bit.select_random_bit(mask)
                         {
                             let number = selected_bit + 1;
                             
@@ -182,31 +183,16 @@ impl<const N_ROWS: usize, const N_COLS: usize> SudokuFactory<N_ROWS, N_COLS> {
                 break;
             }
 
+            let valid = pencil_notes.check();
+            if !valid {
+                println!("Pencil notes has cells with no possibilities!");
+            }
+
         }
 
         sudoku
     }
 
-    pub fn select_random_bit(&mut self,bitfield: u32) -> Option<u32> {
-    
-        let number_of_ones = bitfield.count_ones();
-        let mut mask = bitfield; 
-    
-        match number_of_ones {
-            0 => None,
-            1 => Some(mask.trailing_zeros()),
-            _ => {
-    
-                let target_index = self.rng.random_range(0..number_of_ones);
-    
-                for _ in 0..target_index {
-                    mask &= mask - 1;
-                }
-    
-                Some(mask.trailing_zeros())
-            }
-        }
-    }
 
 }
 

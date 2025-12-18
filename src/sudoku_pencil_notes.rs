@@ -1,3 +1,5 @@
+use rand::{Rng, RngCore};
+
 use crate::sudoku_iterator::{SudokuIterator, SudokuIteratorMode};
 
 
@@ -33,6 +35,18 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         let number_of_symbols_mask = ((1 as u32) << ((N_ROWS / 3) * (N_COLS / 3))) - 1;
 
         PencilNotes { possibilities: [[number_of_symbols_mask; N_COLS]; N_ROWS] }
+    }
+
+    pub fn check(&self) -> bool {
+        for r in 0..N_ROWS {
+            for c in 0..N_COLS {
+                if self.possibilities[r][c] == 0
+                {
+                    return false;
+                }
+            }
+        }
+        true
     }
 
     pub fn reset(&mut self) {
@@ -153,6 +167,26 @@ impl<const N_ROWS: usize, const N_COLS: usize> PencilNotes<N_ROWS, N_COLS> {
         
         let mask = 1 << (number - 1);
         (self.possibilities[row][col] & mask) != 0
+    }
+
+    pub fn is_possible(&self, row: usize, col: usize, number: u32) -> bool {
+        let mut good = true;
+
+        if !self.has_possibility(row, col, number) {
+            good = false;
+        }
+        
+        let mask = 1u32 << (number -1);
+        for (row, col) in SudokuIterator::<N_ROWS, N_COLS>::new(row, col, SudokuIteratorMode::Affected)
+        {
+            if self.possibilities[row][col] & mask == mask {
+                good = false;
+                break;
+            }
+        }
+        
+        good
+        
     }
 
     pub fn count_possibilities(&self, row: usize, col: usize) -> u32 {
@@ -425,4 +459,43 @@ impl<const N_ROWS: usize, const N_COLS: usize> Iterator for HiddenSingleIterator
 
         None
     }
+}
+
+
+pub struct RandomBit
+{
+    rng: Box<dyn RngCore>
+}
+
+impl RandomBit {
+
+    pub fn new(rng: Box<dyn RngCore>) -> Self
+    {
+        Self { rng: rng }
+    }
+
+    pub fn select_random_bit(&mut self, bitfield: u32) -> Option<u32> {
+    
+        let number_of_ones = bitfield.count_ones();
+        let mut mask = bitfield; 
+    
+        match number_of_ones {
+            0 => None,
+            1 => Some(mask.trailing_zeros()),
+            _ => {
+    
+                let target_index = self.rng.random_range(0..number_of_ones);
+
+                println!("Mask is: {:09b}", mask);
+
+                for _ in 0..target_index {
+                    mask &= mask - 1;
+                    println!("Mask is: {:09b}", mask);
+                }
+    
+                Some(mask.trailing_zeros())
+            }
+        }
+    }
+
 }
